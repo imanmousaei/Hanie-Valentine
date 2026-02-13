@@ -3,29 +3,31 @@ from tkinter import messagebox, Canvas
 from PIL import Image, ImageTk
 import random
 import math
-import time
+from pathlib import Path
 
-# ================== CUSTOMIZE HERE ==================
-WIFE_NAME = "My Love"  # or her actual name/pet name
-QUESTION = f"Will you be my Valentine... again, {WIFE_NAME}? ❤️"
+# configs
+HANIE_NAME = "My Love"  # or her actual name/pet name
+QUESTION = f"Will you be my Valentine... again, {HANIE_NAME}? ❤️"
 YES_TEXT = "YES! 😍"
 NO_TEXT = "NO 😢"
 
-PHOTO_PATHS = [
-    "photos/1.jpg",   # replace with your real paths
-    "photos/2.jpg",
-    "photos/3.jpg",
-    "photos/4.jpg",
-    "photos/5.jpg",
-    # add more!
-]
+SLIDESHOW_DELAY_MS = 1000
 
-FINAL_MESSAGE = f"Happy Valentine's Day, {WIFE_NAME}!\nI love you more every beat of my heart 💕"
+FINAL_MESSAGE = (f"Happy Valentine's Day, {HANIE_NAME}!\n"
+                 f"I love you more every beat of my heart 💕")
+
+# image paths
+folder = Path("./photos")
+
+PHOTO_PATHS = [f for f in folder.iterdir()
+          if f.is_file() and f.suffix.lower() in {'.jpg', '.jpeg'}]
+
+
 # ====================================================
 
 root = tk.Tk()
 root.title("For You ❤️")
-root.attributes('-fullscreen', True)  # fullscreen for impact; comment out for windowed testing
+root.attributes('-fullscreen', True)
 root.configure(bg="black")
 
 # Keep references to avoid garbage collection
@@ -44,9 +46,10 @@ def yes_clicked():
 
 def no_enter(event):
     # Move "No" button to random position when hovered
-    new_x = random.randint(100, root.winfo_screenwidth() - 200)
-    new_y = random.randint(200, root.winfo_screenheight() - 200)
+    new_x = random.randint(root.winfo_screenwidth() - 200, root.winfo_screenwidth() - 200)
+    new_y = random.randint(root.winfo_screenheight() - 200, root.winfo_screenheight() - 200)
     btn_no.place(x=new_x, y=new_y)
+    print(f"new_place = {new_x}, {new_y}")
 
 btn_yes = tk.Button(question_frame, text=YES_TEXT, font=("Arial", 28, "bold"),
                     bg="#ff4d4d", fg="white", width=10,
@@ -58,14 +61,8 @@ btn_no = tk.Button(question_frame, text=NO_TEXT, font=("Arial", 28, "bold"),
 btn_no.pack(side="right", padx=80)
 btn_no.bind("<Enter>", no_enter)  # hover → run away!
 
-# Optional: Make "No" even harder — change text on hover
-def no_leave(event):
-    btn_no.config(text=NO_TEXT)
-btn_no.bind("<Leave>", no_leave)
-
 # ── Phase 2: Slideshow ──
 canvas = Canvas(root, bg="black", highlightthickness=0)
-# We'll place it later
 
 current_photo_idx = 0
 fade_step = 0.1  # alpha increment for fade
@@ -102,7 +99,7 @@ def show_photo(idx):
                            font=("Arial", 24, "italic"))
 
         # Schedule next
-        root.after(5000, lambda: fade_to_next(idx))  # show 5 sec
+        root.after(SLIDESHOW_DELAY_MS, lambda: fade_to_next(idx))  # show 5 sec
 
     except Exception as e:
         messagebox.showerror("Oops", f"Couldn't load photo: {e}")
@@ -117,47 +114,78 @@ def fade_to_next(current_idx):
 
 # ── Phase 3: Beating Heart ──
 def show_beating_heart():
-    canvas.delete("all")  # clear slideshow
+    canvas.delete("all")  # clear slideshow etc.
 
-    heart_size_base = 150
-    pulse = 0
-    pulse_dir = 0.8
+    screen_w = root.winfo_screenwidth()
+    screen_h = root.winfo_screenheight()
 
-    def draw_heart(size):
+    # Start with a reasonable base size (adjust multiplier if needed)
+    base_size = min(screen_w, screen_h) // 8  # e.g. 200–300 px on most screens
+    pulse_offset = 0
+    pulse_direction = 2.0
+
+    def draw_heart(current_size):
         points = []
-        cx, cy = root.winfo_screenwidth()//2, root.winfo_screenheight()//2 - 50
-        for t in range(0, 360, 2):
+        # Center position (slightly above vertical center)
+        cx = screen_w // 2
+        cy = screen_h // 2 - base_size // 3
+
+        scale = current_size / 16.0  # normalize so multiplier ≈1 gives ~reasonable size
+
+        for t in range(0, 361, 4):  # coarser step = faster + less points
             rad = math.radians(t)
-            # Classic heart parametric (from math sources)
-            x = size * 16 * math.sin(rad)**3
-            y = size * -(13 * math.cos(rad) - 5 * math.cos(2*rad) -
-                         2 * math.cos(3*rad) - math.cos(4*rad))
-            points.append((cx + x, cy + y))
-        canvas.create_polygon(points, fill="red", outline="pink", width=4, tags="heart")
+            # Standard heart parametric – values roughly -16 to 16 range
+            x = 16 * (math.sin(rad) ** 3)
+            y = 13 * math.cos(rad) - 5 * math.cos(2 * rad) \
+                - 2 * math.cos(3 * rad) - math.cos(4 * rad)
 
-    def beat():
-        nonlocal pulse, pulse_dir
+            px = cx + x * scale
+            py = cy - y * scale  # negate y (canvas y grows down)
+
+            # Safety clamp (prevents insane off-screen values)
+            px = max(0, min(screen_w, px))
+            py = max(0, min(screen_h, py))
+
+            points.append((px, py))
+
+        if len(points) > 10:
+            canvas.create_polygon(points, fill="#ff3366", outline="#ff6699",
+                                  width=4, smooth=True, tags="heart")
+        else:
+            # Fallback if something broke
+            canvas.create_oval(cx - current_size, cy - current_size,
+                               cx + current_size, cy + current_size,
+                               fill="red", tags="heart")
+            canvas.create_text(cx, cy, text="Fallback circle", fill="white", font=("Arial", 16))
+
+        # Debug label (remove later if you want)
+        canvas.create_text(100, 50, text=f"Size: {current_size:.1f} | Points: {len(points)}",
+                           fill="yellow", font=("Arial", 14), anchor="nw", tags="debug")
+
+    def pulse():
+        nonlocal pulse_offset, pulse_direction
         canvas.delete("heart")
-        current_size = heart_size_base + pulse
+        current_size = base_size + pulse_offset
         draw_heart(current_size)
-        pulse += pulse_dir
-        if pulse > 30 or pulse < -10:
-            pulse_dir *= -1
-        root.after(60, beat)  # fast heartbeat feel
+        pulse_offset += pulse_direction
+        if pulse_offset > 35 or pulse_offset < -15:
+            pulse_direction *= -1
+        root.after(80, pulse)
 
-    beat()
+    pulse()
 
-    # Final text
-    canvas.create_text(root.winfo_screenwidth()//2, root.winfo_screenheight() - 150,
+    # Final message
+    canvas.create_text(screen_w // 2, screen_h - 160,
                        text=FINAL_MESSAGE,
-                       fill="pink", font=("Arial", 40, "bold"), justify="center")
+                       fill="pink", font=("Arial", 38, "bold"), justify="center")
 
-    # Exit hint
-    canvas.create_text(root.winfo_screenwidth()//2, root.winfo_screenheight() - 50,
-                       text="(Press ESC to close)",
-                       fill="gray", font=("Arial", 16))
+    # Exit instructions
+    canvas.create_text(screen_w // 2, screen_h - 60,
+                       text="Press ESC or click anywhere to close",
+                       fill="gray", font=("Arial", 18))
 
     root.bind("<Escape>", lambda e: root.destroy())
+    canvas.bind("<Button-1>", lambda e: root.destroy())
 
 # Start with question screen
 root.mainloop()
