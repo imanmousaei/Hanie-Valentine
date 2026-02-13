@@ -30,6 +30,11 @@ root.title("For You ❤️")
 root.attributes('-fullscreen', True)
 root.configure(bg="black")
 
+def exit_app(event=None):
+    root.destroy()
+
+root.bind("<Escape>", exit_app)
+
 # Keep references to avoid garbage collection
 photo_refs = []
 
@@ -44,12 +49,19 @@ def yes_clicked():
     question_frame.destroy()
     start_slideshow()
 
+
 def no_enter(event):
-    # Move "No" button to random position when hovered
-    new_x = random.randint(root.winfo_screenwidth() - 200, root.winfo_screenwidth() - 200)
-    new_y = random.randint(root.winfo_screenheight() - 200, root.winfo_screenheight() - 200)
-    btn_no.place(x=new_x, y=new_y)
-    print(f"new_place = {new_x}, {new_y}")
+    frame_w = question_frame.winfo_width()
+    frame_h = question_frame.winfo_height()
+    if frame_w < 100 or frame_h < 100:  # not yet laid out
+        frame_w, frame_h = 600, 300  # fallback guess
+
+    margin = 40
+    new_x = random.randint(margin, frame_w - margin - 180)  # button approx width
+    new_y = random.randint(margin, frame_h - margin - 80)
+    btn_no.place(x=new_x, y=new_y, anchor="center")
+
+
 
 btn_yes = tk.Button(question_frame, text=YES_TEXT, font=("Arial", 28, "bold"),
                     bg="#ff4d4d", fg="white", width=10,
@@ -61,11 +73,12 @@ btn_no = tk.Button(question_frame, text=NO_TEXT, font=("Arial", 28, "bold"),
 btn_no.pack(side="right", padx=80)
 btn_no.bind("<Enter>", no_enter)  # hover → run away!
 
+
 # ── Phase 2: Slideshow ──
 canvas = Canvas(root, bg="black", highlightthickness=0)
 
 current_photo_idx = 0
-fade_step = 0.1  # alpha increment for fade
+fade_step = 0.5  # alpha increment for fade
 
 def start_slideshow():
     global canvas
