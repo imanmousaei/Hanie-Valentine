@@ -5,28 +5,33 @@ import random
 import math
 from pathlib import Path
 
+
 # configs
-HANIE_NAME = "My Love"  # or her actual name/pet name
-QUESTION = f"Will you be my Valentine... again, {HANIE_NAME}? ❤️"
-YES_TEXT = "YES! 😍"
-NO_TEXT = "NO 😢"
+QUESTION = f"Will you be my Valentine... again, My Love?"
+YES_TEXT = "YES :)"
+NO_TEXT = "NO :("
 
-SLIDESHOW_DELAY_MS = 1000
+SLIDESHOW_DELAY_MS = 5000
 
-FINAL_MESSAGE = (f"Happy Valentine's Day, {HANIE_NAME}!\n"
-                 f"I love you more every beat of my heart 💕")
+FINAL_MESSAGE = (f"Happy Valentine's Day, My Love!\n"
+                 f"I love you Hanie. \n"
+                 f"You are my best friend, my home, my everything. \n"
+                 f"Thank you for making me the happiest man in the world <3")
 
-# image paths
+
+# photo paths
 folder = Path("./photos")
 
 PHOTO_PATHS = [f for f in folder.iterdir()
           if f.is_file() and f.suffix.lower() in {'.jpg', '.jpeg'}]
 
+PHOTO_COUNT_LIMIT = 3
+PHOTO_PATHS = PHOTO_PATHS[:PHOTO_COUNT_LIMIT]
 
 # ====================================================
 
 root = tk.Tk()
-root.title("For You ❤️")
+root.title("For You ❤")
 root.attributes('-fullscreen', True)
 root.configure(bg="black")
 
@@ -49,16 +54,31 @@ def yes_clicked():
     question_frame.destroy()
     start_slideshow()
 
-
-def no_enter(event):
+def random_point():
+    margin = 40
     frame_w = question_frame.winfo_width()
     frame_h = question_frame.winfo_height()
     if frame_w < 100 or frame_h < 100:  # not yet laid out
         frame_w, frame_h = 600, 300  # fallback guess
 
-    margin = 40
-    new_x = random.randint(margin, frame_w - margin - 180)  # button approx width
+    new_x = random.randint(margin, frame_w - margin - 180)
     new_y = random.randint(margin, frame_h - margin - 80)
+    return new_x, new_y
+
+last_x=0
+last_y=0
+
+def no_enter(event):
+    global last_x, last_y
+    min_distance = 300
+
+    new_x, new_y = random_point()
+    distance = ((new_x - last_x) ** 2 + (new_y - last_y) ** 2) ** 0.5
+
+    # while distance < min_distance:
+    #     new_x, new_y = random_point()
+    #
+    # last_x, last_y = new_x, new_y
     btn_no.place(x=new_x, y=new_y, anchor="center")
 
 
@@ -106,7 +126,7 @@ def show_photo(idx):
         canvas.create_image(x, y, image=photo, anchor="nw", tags="photo")
 
         # Caption (optional per photo)
-        caption = f"Remember this? ❤️" if idx == 0 else ""
+        caption = f"Remember this?" if idx == 0 else ""
         canvas.create_text(screen_w//2, screen_h - 100,
                            text=caption, fill="white",
                            font=("Arial", 24, "italic"))
@@ -172,8 +192,8 @@ def show_beating_heart():
             canvas.create_text(cx, cy, text="Fallback circle", fill="white", font=("Arial", 16))
 
         # Debug label (remove later if you want)
-        canvas.create_text(100, 50, text=f"Size: {current_size:.1f} | Points: {len(points)}",
-                           fill="yellow", font=("Arial", 14), anchor="nw", tags="debug")
+        # canvas.create_text(100, 50, text=f"Size: {current_size:.1f} | Points: {len(points)}",
+        #                    fill="yellow", font=("Arial", 14), anchor="nw", tags="debug")
 
     def pulse():
         nonlocal pulse_offset, pulse_direction
@@ -193,9 +213,9 @@ def show_beating_heart():
                        fill="pink", font=("Arial", 38, "bold"), justify="center")
 
     # Exit instructions
-    canvas.create_text(screen_w // 2, screen_h - 60,
-                       text="Press ESC or click anywhere to close",
-                       fill="gray", font=("Arial", 18))
+    # canvas.create_text(screen_w // 2, screen_h - 60,
+    #                    text="Press ESC or click anywhere to close",
+    #                    fill="gray", font=("Arial", 18))
 
     root.bind("<Escape>", lambda e: root.destroy())
     canvas.bind("<Button-1>", lambda e: root.destroy())
