@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import random
 import math
 from pathlib import Path
+import pygame
 
 
 # configs
@@ -25,8 +26,8 @@ folder = Path("./photos")
 PHOTO_PATHS = [f for f in folder.iterdir()
           if f.is_file() and f.suffix.lower() in {'.jpg', '.jpeg'}]
 
-PHOTO_COUNT_LIMIT = 3
-PHOTO_PATHS = PHOTO_PATHS[:PHOTO_COUNT_LIMIT]
+# PHOTO_COUNT_LIMIT = 3
+# PHOTO_PATHS = PHOTO_PATHS[:PHOTO_COUNT_LIMIT]
 
 # ====================================================
 
@@ -35,7 +36,10 @@ root.title("For You ❤")
 root.attributes('-fullscreen', True)
 root.configure(bg="black")
 
+pygame.mixer.init()
+
 def exit_app(event=None):
+    pygame.mixer.music.stop()
     root.destroy()
 
 root.bind("<Escape>", exit_app)
@@ -52,6 +56,16 @@ tk.Label(question_frame, text=QUESTION, font=("Arial", 32, "bold"),
 
 def yes_clicked():
     question_frame.destroy()
+
+    # Start music (loop forever with -1, or once with 0)
+    try:
+        pygame.mixer.music.load("songs/Homayoun-Shajarian-Yek-Nafas-Arezouye-To-128.mp3")
+        pygame.mixer.music.play(loops=-1)  # loops=-1 → endless repeat
+        # Optional: set volume (0.0 to 1.0)
+        # pygame.mixer.music.set_volume(0.7)
+    except Exception as e:
+        print(f"Music failed to load: {e}")  # For debugging; remove later
+
     start_slideshow()
 
 def random_point():
